@@ -22,35 +22,42 @@ const client = new MongoClient(uri, {
   }
 });
 
+const logger = (req, res, next) => {
+  console.log(`${req.method} | ${req.url}`)
+  next();
+};
+
+
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
-    
+
     const db = client.db("studynookdb");
     const roomsCollection = db.collection("rooms");
 
-    app.get("/rooms", async(req, res) =>{
+    app.get("/rooms", async (req, res) => {
       const cursor = roomsCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     })
 
-    app.get("/featured", async(req, res) =>{
-      const cursor = roomsCollection.find().limit(4);
+    app.get("/featured", async (req, res) => {
+      const cursor = roomsCollection.find().limit(6);
       const result = await cursor.toArray();
       res.send(result);
     })
 
-    app.get("/rooms/:roomId", async(req, res) =>{
-      const {roomId} = req.params;
-      const query = {_id: new ObjectId(roomId)}
-      const result = await roomsCollection.findOne(query);
-      res.send(result)
-      // console.log(roomId)
-    })
+    app.get("/rooms/:roomId", logger, async (req, res) => {
+        const { roomId } = req.params;
+        const query = { _id: new ObjectId(roomId) }
+        const result = await roomsCollection.findOne(query);
+        res.send(result)
+        // console.log(roomId)
+      })
 
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
