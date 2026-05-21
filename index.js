@@ -6,6 +6,7 @@ const { createRemoteJWKSet, jwtVerify } = require('jose-cjs');
 dotenv.config();
 const app = express();
 app.use(cors());
+app.use(express.json());
 const port = process.env.PORT || 5000;
 
 
@@ -64,10 +65,33 @@ async function run() {
 
     const db = client.db("studynookdb");
     const roomsCollection = db.collection("rooms");
+    const bookingCollection = db.collection("booking");
+
+    app.post("/rooms", async(req, res) => {
+      const roomsData = req.body
+      // console.log(roomsData)
+      const result = await roomsCollection.insertOne(roomsData)
+
+      res.json(result)
+    })
 
     app.get("/rooms", async (req, res) => {
-      const cursor = roomsCollection.find();
+      console.log(req.query)
+      const { search } = req.query;
+      let query = {};
+      if (search) {
+        query = {
+          title: {
+            $regex: search,
+            $options: "i",
+          },
+        };
+
+      }
+
+      const cursor = roomsCollection.find(query);
       const result = await cursor.toArray();
+      console.log(result)
       res.send(result);
     })
 
@@ -78,13 +102,50 @@ async function run() {
     })
 
     app.get("/rooms/:roomId", logger, verifyToken, async (req, res) => {
-      console.log(req.user, "request")
+      // console.log(req.user, "request")
       const { roomId } = req.params;
       const query = { _id: new ObjectId(roomId) }
       const result = await roomsCollection.findOne(query);
       res.send(result)
       // console.log(roomId)
     })
+
+    app.get("/bookings/:userId", async(req, res) => {
+      const { userId } = req.params;
+      const result = await bookingCollection.find({userId: userId}).toArray();
+      res.send(result)
+      
+    })
+
+    app.patch("/bookings/:roomId", verifyToken, async(req, res) => {
+      // console.log('from booking')
+      const {roomId} = req.params;
+      const bookingData = req.body;
+      const room = await roomsCollection.findOne({_id: new ObjectId(roomId)})
+      if(!room){
+        res.status(404).json({message: "Room not found"});
+      }
+      await roomsCollection.updateOne({_id: new ObjectId(roomId)}, {
+        $inc: {bookingCount: 1},
+        $set: {
+          lastBookingAt: new Date(),
+        }
+      })
+      console.log(bookingData)
+      const result = await bookingCollection.insertOne({
+        ...bookingData,
+        bookingAt: new Date(),
+      });
+      // console.log(result)
+      res.send(result);
+    });
+
+  app.delete("/bookings/:userId", async(req, res) => {
+    const {userId} = req.params;
+    const bookingData = req.body;
+    const result = await bookingCollection.deleteOne({_id: new ObjectId(userId)})
+    res.json(result)
+  })
 
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
