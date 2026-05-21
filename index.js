@@ -140,7 +140,7 @@ const verifyToken = async (req, res, next) => {
       res.send(result);
     });
 
-    app.delete('/rooms/:id', async(req, res))
+    // app.delete('/rooms/:id', async(req, res))
 
     app.delete("/bookings/:userId", async (req, res) => {
       const { userId } = req.params;
