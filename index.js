@@ -56,10 +56,10 @@ const verifyToken = async (req, res, next) => {
 
 }
 
-async function run() {
-  try {
+// async function run() {
+  // try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
 
@@ -67,7 +67,7 @@ async function run() {
     const roomsCollection = db.collection("rooms");
     const bookingCollection = db.collection("booking");
 
-    app.post("/rooms", async(req, res) => {
+    app.post("/rooms", async (req, res) => {
       const roomsData = req.body
       // console.log(roomsData)
       const result = await roomsCollection.insertOne(roomsData)
@@ -110,23 +110,23 @@ async function run() {
       // console.log(roomId)
     })
 
-    app.get("/bookings/:userId", async(req, res) => {
+    app.get("/bookings/:userId", async (req, res) => {
       const { userId } = req.params;
-      const result = await bookingCollection.find({userId: userId}).toArray();
+      const result = await bookingCollection.find({ userId: userId }).toArray();
       res.send(result)
-      
+
     })
 
-    app.patch("/bookings/:roomId", verifyToken, async(req, res) => {
+    app.patch("/bookings/:roomId", verifyToken, async (req, res) => {
       // console.log('from booking')
-      const {roomId} = req.params;
+      const { roomId } = req.params;
       const bookingData = req.body;
-      const room = await roomsCollection.findOne({_id: new ObjectId(roomId)})
-      if(!room){
-        res.status(404).json({message: "Room not found"});
+      const room = await roomsCollection.findOne({ _id: new ObjectId(roomId) })
+      if (!room) {
+        res.status(404).json({ message: "Room not found" });
       }
-      await roomsCollection.updateOne({_id: new ObjectId(roomId)}, {
-        $inc: {bookingCount: 1},
+      await roomsCollection.updateOne({ _id: new ObjectId(roomId) }, {
+        $inc: { bookingCount: 1 },
         $set: {
           lastBookingAt: new Date(),
         }
@@ -140,20 +140,22 @@ async function run() {
       res.send(result);
     });
 
-  app.delete("/bookings/:userId", async(req, res) => {
-    const {userId} = req.params;
-    const bookingData = req.body;
-    const result = await bookingCollection.deleteOne({_id: new ObjectId(userId)})
-    res.json(result)
-  })
+    app.delete('/rooms/:id', async(req, res))
 
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
+    app.delete("/bookings/:userId", async (req, res) => {
+      const { userId } = req.params;
+      const bookingData = req.body;
+      const result = await bookingCollection.deleteOne({ _id: new ObjectId(userId) })
+      res.json(result)
+    })
+
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
+  // } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
-  }
-}
-run().catch(console.dir);
+  // }
+// }
+// run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
