@@ -56,12 +56,7 @@ const verifyToken = async (req, res, next) => {
 
 }
 
-// async function run() {
-  // try {
-    // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
-    // Send a ping to confirm a successful connection
-    // await client.db("admin").command({ ping: 1 });
+
 
     const db = client.db("studynookdb");
     const roomsCollection = db.collection("rooms");
@@ -117,6 +112,17 @@ const verifyToken = async (req, res, next) => {
 
     })
 
+    app.patch("/rooms/:id", async (req, res) => {
+      const {id} = req.params
+      const updateData = req.body
+      const result = roomsCollection.updateOne(
+        {_id: new ObjectId(id)},
+        {$set: updateData}
+
+      )
+      res.json(result)
+    })
+
     app.patch("/bookings/:roomId", verifyToken, async (req, res) => {
       // console.log('from booking')
       const { roomId } = req.params;
@@ -140,7 +146,11 @@ const verifyToken = async (req, res, next) => {
       res.send(result);
     });
 
-    // app.delete('/rooms/:id', async(req, res))
+    app.delete('/rooms/:id', async(req, res) =>{
+      const {id} = req.params;
+      const result = await roomsCollection.deleteOne({_id: new ObjectId(id)})
+      res.json(result);
+    })
 
     app.delete("/bookings/:userId", async (req, res) => {
       const { userId } = req.params;
@@ -149,13 +159,6 @@ const verifyToken = async (req, res, next) => {
       res.json(result)
     })
 
-    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  // } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
-  // }
-// }
-// run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
