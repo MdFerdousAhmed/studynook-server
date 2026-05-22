@@ -57,107 +57,106 @@ const verifyToken = async (req, res, next) => {
 }
 
 
+const db = client.db("studynookdb");
+const roomsCollection = db.collection("rooms");
+const bookingCollection = db.collection("booking");
 
-    const db = client.db("studynookdb");
-    const roomsCollection = db.collection("rooms");
-    const bookingCollection = db.collection("booking");
+app.post("/rooms", verifyToken, async (req, res) => {
+  const roomsData = req.body
+  // console.log(roomsData)
+  const result = await roomsCollection.insertOne(roomsData)
 
-    app.post("/rooms", async (req, res) => {
-      const roomsData = req.body
-      // console.log(roomsData)
-      const result = await roomsCollection.insertOne(roomsData)
+  res.json(result)
+})
 
-      res.json(result)
-    })
+app.get("/rooms", async (req, res) => {
+  console.log(req.query)
+  const { search } = req.query;
+  let query = {};
+  if (search) {
+    query = {
+      title: {
+        $regex: search,
+        $options: "i",
+      },
+    };
 
-    app.get("/rooms", async (req, res) => {
-      console.log(req.query)
-      const { search } = req.query;
-      let query = {};
-      if (search) {
-        query = {
-          title: {
-            $regex: search,
-            $options: "i",
-          },
-        };
+  }
 
-      }
+  const cursor = roomsCollection.find(query);
+  const result = await cursor.toArray();
+  console.log(result)
+  res.send(result);
+})
 
-      const cursor = roomsCollection.find(query);
-      const result = await cursor.toArray();
-      console.log(result)
-      res.send(result);
-    })
+app.get("/featured", async (req, res) => {
+  const cursor = roomsCollection.find().limit(6);
+  const result = await cursor.toArray();
+  res.send(result);
+})
 
-    app.get("/featured", async (req, res) => {
-      const cursor = roomsCollection.find().limit(6);
-      const result = await cursor.toArray();
-      res.send(result);
-    })
+app.get("/rooms/:roomId", logger, verifyToken, async (req, res) => {
+  // console.log(req.user, "request")
+  const { roomId } = req.params;
+  const query = { _id: new ObjectId(roomId) }
+  const result = await roomsCollection.findOne(query);
+  res.send(result)
+  // console.log(roomId)
+})
 
-    app.get("/rooms/:roomId", logger, verifyToken, async (req, res) => {
-      // console.log(req.user, "request")
-      const { roomId } = req.params;
-      const query = { _id: new ObjectId(roomId) }
-      const result = await roomsCollection.findOne(query);
-      res.send(result)
-      // console.log(roomId)
-    })
+app.get("/bookings/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const result = await bookingCollection.find({ userId: userId }).toArray();
+  res.send(result)
 
-    app.get("/bookings/:userId", async (req, res) => {
-      const { userId } = req.params;
-      const result = await bookingCollection.find({ userId: userId }).toArray();
-      res.send(result)
+})
 
-    })
+app.patch("/rooms/:id", verifyToken, async (req, res) => {
+  const { id } = req.params
+  const updateData = req.body
+  const result = roomsCollection.updateOne(
+    { _id: new ObjectId(id) },
+    { $set: updateData }
 
-    app.patch("/rooms/:id", async (req, res) => {
-      const {id} = req.params
-      const updateData = req.body
-      const result = roomsCollection.updateOne(
-        {_id: new ObjectId(id)},
-        {$set: updateData}
+  )
+  res.json(result)
+})
 
-      )
-      res.json(result)
-    })
+app.patch("/bookings/:roomId", verifyToken, async (req, res) => {
+  // console.log('from booking')
+  const { roomId } = req.params;
+  const bookingData = req.body;
+  const room = await roomsCollection.findOne({ _id: new ObjectId(roomId) })
+  if (!room) {
+    res.status(404).json({ message: "Room not found" });
+  }
+  await roomsCollection.updateOne({ _id: new ObjectId(roomId) }, {
+    $inc: { bookingCount: 1 },
+    $set: {
+      lastBookingAt: new Date(),
+    }
+  })
+  console.log(bookingData)
+  const result = await bookingCollection.insertOne({
+    ...bookingData,
+    bookingAt: new Date(),
+  });
+  // console.log(result)
+  res.send(result);
+});
 
-    app.patch("/bookings/:roomId", verifyToken, async (req, res) => {
-      // console.log('from booking')
-      const { roomId } = req.params;
-      const bookingData = req.body;
-      const room = await roomsCollection.findOne({ _id: new ObjectId(roomId) })
-      if (!room) {
-        res.status(404).json({ message: "Room not found" });
-      }
-      await roomsCollection.updateOne({ _id: new ObjectId(roomId) }, {
-        $inc: { bookingCount: 1 },
-        $set: {
-          lastBookingAt: new Date(),
-        }
-      })
-      console.log(bookingData)
-      const result = await bookingCollection.insertOne({
-        ...bookingData,
-        bookingAt: new Date(),
-      });
-      // console.log(result)
-      res.send(result);
-    });
+app.delete('/rooms/:id', async (req, res) => {
+  const { id } = req.params;
+  const result = await roomsCollection.deleteOne({ _id: new ObjectId(id) })
+  res.json(result);
+})
 
-    app.delete('/rooms/:id', async(req, res) =>{
-      const {id} = req.params;
-      const result = await roomsCollection.deleteOne({_id: new ObjectId(id)})
-      res.json(result);
-    })
-
-    app.delete("/bookings/:userId", async (req, res) => {
-      const { userId } = req.params;
-      const bookingData = req.body;
-      const result = await bookingCollection.deleteOne({ _id: new ObjectId(userId) })
-      res.json(result)
-    })
+app.delete("/bookings/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const bookingData = req.body;
+  const result = await bookingCollection.deleteOne({ _id: new ObjectId(userId) })
+  res.json(result)
+})
 
 
 
