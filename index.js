@@ -61,7 +61,7 @@ const db = client.db("studynookdb");
 const roomsCollection = db.collection("rooms");
 const bookingCollection = db.collection("booking");
 
-app.post("/rooms", verifyToken, async (req, res) => {
+app.post("/rooms", async (req, res) => {
   const roomsData = req.body
   // console.log(roomsData)
   const result = await roomsCollection.insertOne(roomsData)
@@ -111,7 +111,7 @@ app.get("/bookings/:userId", async (req, res) => {
 
 })
 
-app.patch("/rooms/:id", verifyToken, async (req, res) => {
+app.patch("/rooms/:id", async (req, res) => {
   const { id } = req.params
   const updateData = req.body
   const result = roomsCollection.updateOne(
